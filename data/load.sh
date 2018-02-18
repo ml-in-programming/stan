@@ -9,6 +9,9 @@ repState="$root/$project/repositoryState";
 
 cat "$files" | while read line
 do
+    if [[ ${line} == /* ]]; then
+        continue;
+    fi
     cd ${reps};
     stage="address";
     address="";
