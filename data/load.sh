@@ -2,10 +2,10 @@
 
 project=$1;
 
-root="/home/egor/PyCharm2017/projects/stan/data"
-files="$root/$project/repositoryState/reps.csv";
+root="/home/egor/PycharmProjects/stan/data"
 reps="$root/$project/reps";
 repState="$root/$project/repositoryState";
+files="$repState/reps_to_load.csv";
 
 cat "$files" | while read line
 do
@@ -29,7 +29,7 @@ do
     name="$address";
     name="${name##*/}";
     name="${name%.*}";
-    error=$( git clone ${address} 2>&1 );
+    error=$(timeout 60 git clone ${address} 2>&1 );
     if echo "$error" | grep -q "fatal" ; then
         rm -rf "$name";
         continue;
@@ -38,6 +38,7 @@ do
     if echo "$error" | grep -q "No such file or directory" ; then
         continue;
     fi
+    cd "${reps}/${name}"
     git checkout ${version};
     author="";
     failed="False";
@@ -51,9 +52,17 @@ do
     done < <(git log | grep "Author");
     cd ${reps};
     if [ "$failed" = "True" ]; then
-        rm -rf "$name";
+        rm -rf "${reps}/${name}";
     else
         echo "$address $version" >> "$repState/clean_reps.csv"
+        cd "${reps}/${name}"
+        for longName in $(find | grep "\.java$")
+        do
+            shortName="${longName##*/}"
+            mv "${longName}" "./${shortName}"
+        done
+        find . ! -regex '.*\.java' -type f -exec rm -f {} +
+        find . ! -regex '\.' -type d -exec rm -rd {} +
     fi
 
 done

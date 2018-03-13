@@ -103,3 +103,6 @@ ENV/
 # Idea
 .idea/
 *.iml
+
+# Downloaded repositories
+data/*/reps/
