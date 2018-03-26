@@ -11,10 +11,9 @@ def baseline_model(features, classes):
     # create model
     hidden_layer_size = 256
     model = Sequential()
-    model.add(Dense(hidden_layer_size,
-                    input_dim=features,
-                    activation='sigmoid',
-                    kernel_regularizer=regularizers.l2(0.001)))
+    model.add(Dense(hidden_layer_size, input_dim=features, activation='sigmoid'))
+    model.add(Dropout(0.5))
+    model.add(Dense(hidden_layer_size, input_dim=features, activation='sigmoid'))
     model.add(Dense(classes, activation='softmax'))
     # Compile model
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -61,10 +60,11 @@ def train_neural_network(x_train, y_train, x_test, y_test):
     history = model.fit(np.array(x_train),
                         y_train,
                         validation_data=(np.array(x_test), y_test),
-                        epochs=150,
+                        epochs=1000,
                         batch_size=16)
     scores = model.evaluate(np.array(x_test), y_test, verbose=0)
     print("Accuracy: %.2f%%" % (scores[1]*100))
 
     plot_history(history)
     # print(model.predict_proba(np.array(x_test)))
+    return scores[1]

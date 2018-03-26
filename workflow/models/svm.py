@@ -12,8 +12,8 @@ def train_svm_clf(x_train, y_train, x_test, y_test):
 
     # Choose some parameter combinations to try
     parameters = {'kernel': ['rbf'],
-                  'C': [20, 25, 30],
-                  'gamma': [0.0005, 0.0003, 0.0002, 0.0001, 0.00008],
+                  'C': [25],
+                  'gamma': [0.0002],
                   'random_state': [239]
                   }
 
@@ -29,9 +29,7 @@ def train_svm_clf(x_train, y_train, x_test, y_test):
 
     print("SVM trained")
     predictions = clf.predict(x_test)
-    print(accuracy_score(y_test, predictions))
-    print(grid_obj.best_params_)
-    return clf
+    return accuracy_score(y_test, predictions)
 
 
 def train_linear_svm_clf(x_train, y_train, x_test, y_test):
@@ -48,7 +46,7 @@ def train_linear_svm_clf(x_train, y_train, x_test, y_test):
     #               }
 
     parameters = {'penalty': ['l2'],
-                  'C': [100, 10, 1, 0.1],
+                  'C': [10],
                   'dual': [True],
                   'random_state': [239]
                   }
@@ -65,6 +63,4 @@ def train_linear_svm_clf(x_train, y_train, x_test, y_test):
 
     print("SVM trained")
     predictions = clf.predict(x_test)
-    print(accuracy_score(y_test, predictions))
-    print(grid_obj.best_params_)
-    return clf
+    return accuracy_score(y_test, predictions)
