@@ -2,7 +2,7 @@
 
 project=$1;
 
-root="/home/egor/PycharmProjects/stan/data"
+root="/home/egor/PycharmProjects/stan/rawData"
 reps="$root/$project/reps";
 repState="$root/$project/repositoryState";
 files="$repState/reps_to_load.csv";
@@ -15,7 +15,7 @@ do
     cd ${reps};
     stage="address";
     address="";
-    version="";
+#    version="";
     for word in ${line}; do
         if [ ${stage} = "address" ]; then
             address=${word};
@@ -25,7 +25,7 @@ do
         fi
     done
     echo ${address};
-    echo ${version};
+#    echo ${version};
     name="$address";
     name="${name##*/}";
     name="${name%.*}";
@@ -39,7 +39,7 @@ do
         continue;
     fi
     cd "${reps}/${name}"
-    git checkout ${version};
+#    git checkout ${version};
     author="";
     failed="False";
     while read check_author

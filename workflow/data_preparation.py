@@ -1,58 +1,78 @@
-import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
-from workflow.models.neural_network import train_neural_network
-from workflow.models.random_forest import train_random_forest_clf
-from workflow.models.svm import train_svm_clf, train_linear_svm_clf
-from workflow.models.xgb import train_xgb_clf
-
 classes = 'Project'
-min_files_in_project = 10
-max_files_in_project = 50
-test_size = 0.2
-root = '../'
-random_seed = 566
+random_seed = 239
 
 
 def load_data(filename):
-    print("Loading data...")
-    datafile = filename
-    data = pd.read_csv(datafile)
+    print("Loading data from {}...".format(filename))
+
+    data = pd.read_csv(filename)
+
     print("Data loaded")
+
     return data
+
+
+def load_encoder(filename):
+    print("Loading encoder from {}...".format(filename))
+
+    name_mapping = {}
+    reverse_mapping = {}
+    fin = open(filename, "r")
+    for line in fin.readlines():
+        string, result = line.split()
+        result = int(result)
+        name_mapping[string] = result
+        reverse_mapping[result] = string
+
+    print("Data loaded")
+
+    return name_mapping, reverse_mapping
 
 
 def normalize_data(data):
     print("Normalizing data...")
+
     int_features = ['Method', 'Fields', 'LocalVariables']
-    to_add = []
+    nominal_features = []
     for feature in data.columns.values:
         if feature.startswith("Nominal"):
-            print(feature)
-            values = data[feature].unique()
-            new_features = list(map(lambda s: "Encoded" + feature + s, values))
-            arrs = [[] for _ in range(len(values))]
-            for index, row in data.iterrows():
-                for value, arr in zip(values, arrs):
-                    if row[feature] == value:
-                        arr.append(1)
-                    else:
-                        arr.append(0)
-            to_add.append((new_features, arrs))
-        if feature in int_features:
-            le = preprocessing.MinMaxScaler()
-            data[feature] = le.fit_transform(data[[feature]])
+            nominal_features.append(feature)
+
+    to_add = []
+    for feature in nominal_features:
+        values = data[feature].unique()
+        new_features = list(map(lambda s: "Encoded" + feature + s, values))
+        arrs = [[] for _ in range(len(values))]
+        for index, row in data.iterrows():
+            for value, arr in zip(values, arrs):
+                if row[feature] == value:
+                    arr.append(1)
+                else:
+                    arr.append(0)
+        to_add.append((new_features, arrs))
+
+    for feature in int_features:
+        le = preprocessing.MinMaxScaler()
+        data[feature] = le.fit_transform(data[[feature]])
+
     for new_features, arrs in to_add:
         for col_name, col_values in zip(new_features, arrs):
             data[col_name] = pd.Series(col_values)
+
+    result_encoder = preprocessing.LabelEncoder().fit(data[classes])
+    data[classes] = result_encoder.transform(data[classes])
+
     print("Data normalized")
-    return data
+    return data, result_encoder
 
 
 def split_data(train, test):
     print("Splitting data...")
+
     to_drop = []
     for feature in train.columns.values:
         if feature.startswith("Nominal"):
@@ -63,23 +83,43 @@ def split_data(train, test):
     x_test = test.drop(to_drop, axis=1)
     y_train = train[classes]
     y_test = test[classes]
+
     print("Data split")
+
     return x_train, x_test, y_train, y_test
 
 
 def save_data(data, filename):
     print("Saving data to {0}...".format(filename))
+
     data.to_csv(filename, index=False)
+
+    print("Saved")
+
+
+def save_encoder(encoder, filename):
+    print("Saving data to {0}...".format(filename))
+
+    name_mapping = dict(zip(encoder.classes_, encoder.transform(encoder.classes_)))
+    fout = open(filename, "w")
+    for string, result in name_mapping.items():
+        fout.write(string + " " + str(result) + "\n")
+    fout.close()
+
     print("Saved")
 
 
 def drop_edge_classes(data, min_threshold, max_threshold=10000000):
     print("Dropping classes with population lower than {0} or greater than {1}...".format(min_threshold, max_threshold))
+
     counts = data[classes].value_counts()
+    leave = []
     for index, row in data.iterrows():
-        if counts[row[classes]] < min_threshold or max_threshold < counts[row[classes]]:
-            data.drop(index, inplace=True)
+        leave.append(min_threshold <= counts[row[classes]] <= max_threshold)
+    data = data[leave]
+
     print("Dropped")
+
     return data
 
 
@@ -87,42 +127,47 @@ def shuffle_data(data):
     return data.sample(frac=1)
 
 
-def get_equal_samples(data, size=None):
+def get_equal_samples(data, test_size, size=None):
     print("Picking random samples from all classes...")
-    train, test = pd.DataFrame(), pd.DataFrame()
-    class_names = data[classes].unique()[:30]
-    counts = data[classes].value_counts()
-    for name in class_names:
-        sample = data.query('{0} == {1}'.format(classes, "'" + name + "'"))  # .sample(min(size, counts[name]))
-        train_sample, test_sample = train_test_split(sample, test_size=0.2, random_state=random_seed)
-        train = train.append(train_sample)
-        test = test.append(test_sample)
-    print("classes:", len(class_names))
+
+    to_drop = ['RatioLambda', 'AstTypeAvgDepthexpr.MethodReferenceExpr',
+               'AstTypeTFexpr.MethodReferenceExpr', 'AstTypeAvgDepthbody.AnnotationDeclaration',
+               'AstTypeTFbody.AnnotationDeclaration', 'AstTypeAvgDepthbody.AnnotationMemberDeclaration',
+               'AstTypeTFbody.AnnotationMemberDeclaration', 'AstTypeTFPackageDeclaration',
+               'AstTypeAvgDepthstmt.LocalClassDeclarationStmt', 'AstTypeTFstmt.LocalClassDeclarationStmt',
+               'AstTypeAvgDepthCompilationUnit', 'AstTypeAvgDepthstmt.DoStmt', 'AstTypeTFstmt.DoStmt',
+               'AstTypeAvgDepthstmt.LabeledStmt', 'AstTypeTFstmt.LabeledStmt', 'AstTypeTFstmt.EmptyStmt',
+               'AstTypeTFexpr.NormalAnnotationExpr', 'AstTypeAvgDepthexpr.MemberValuePair',
+               'AstTypeTFexpr.MemberValuePair', 'AstTypeAvgDepthtype.UnknownType', 'AstTypeTFtype.UnknownType',
+               'AstTypeAvgDepthexpr.TypeExpr', 'AstTypeTFexpr.TypeExpr', 'AstTypeAvgDepthtype.UnionType',
+               'AstTypeTFtype.UnionType', 'AstTypeAvgDepthbody.InitializerDeclaration',
+               'AstTypeTFbody.InitializerDeclaration', 'AstTypeAvgDepthstmt.AssertStmt', 'AstTypeTFstmt.AssertStmt',
+               'AstTypeAvgDepthstmt.WhileStmt', 'AstTypeTFImportDeclaration', 'AstTypeTFexpr.LongLiteralExpr',
+               'AstTypeAvgDepthexpr.LambdaExpr', 'AstTypeTFexpr.LambdaExpr',
+               'EncodedNominalPunctuationBeforeBraceNewLine', 'EncodedNominalTabsLeadLinesTabs',
+               'AstTypeTFbody.EnumDeclaration', 'AstTypeAvgDepthstmt.ContinueStmt', 'AstTypeAvgDepthstmt.SwitchStmt',
+               'AstTypeAvgDepthexpr.CharLiteralExpr']
+    data = data.drop(to_drop, axis=1)
+
+    class_labels = data[classes].unique()
+    if size is not None:
+        class_labels = class_labels[:size]
+
+    train_index = []
+    test_index = []
+    for n, label in enumerate(class_labels):
+        sample = list(data.query('{0} == {1}'.format(classes, label)).index)
+        train_sample, test_sample = train_test_split(sample, test_size=test_size, random_state=random_seed)
+        train_index += train_sample
+        test_index += test_sample
+        # train = train.append(train_sample)
+        # test = test.append(test_sample)
+
+    train = data.ix[train_index]
+    test = data.ix[test_index]
+    print("classes:", len(class_labels))
     print("train:", len(train))
     print("test:", len(test))
-    # train = shuffle_data(train)
-    # test = shuffle_data(test)
     print("Samples are ready")
+
     return split_data(train, test)
-
-
-def main():
-    data = load_data(root + 'normalized_10_data.csv')
-    # data = normalize_data(data)
-    # save_data(data, root + 'normalized_data_old.csv')
-    # data = drop_edge_classes(data, 10)
-    # save_data(data, root + 'normalized_10_data_old.csv')
-    x_train, x_test, y_train, y_test = get_equal_samples(data)
-    # results = [train_random_forest_clf(x_train, y_train, x_test, y_test),
-    #            train_neural_network(x_train, y_train, x_test, y_test),
-    #            train_svm_clf(x_train, y_train, x_test, y_test),
-    #            train_linear_svm_clf(x_train, y_train, x_test, y_test)]
-    results = train_random_forest_clf(x_train, y_train, x_test, y_test)
-    print(results)
-    # results = train_linear_svm_clf(x_train, y_train, x_test, y_test)
-    # print(results)
-    # save_clf(clf)
-
-
-if __name__ == '__main__':
-    main()
