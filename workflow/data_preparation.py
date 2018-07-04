@@ -6,10 +6,10 @@ classes = 'Project'
 random_seed = 239
 
 
-def load_data(filename):
+def load_data(filename, index_col=None, header=0):
     print("Loading data from {}...".format(filename))
 
-    data = pd.read_csv(filename)
+    data = pd.read_csv(filename, header=header, index_col=index_col, squeeze=True)
 
     print("Data loaded")
 
@@ -87,10 +87,10 @@ def split_data(data):
     return x, y
 
 
-def save_data(data, filename):
+def save_data(data, filename, index=False):
     print("Saving data to {0}...".format(filename))
 
-    data.to_csv(filename, index=False)
+    data.to_csv(filename, index=index)
 
     print("Saved")
 
