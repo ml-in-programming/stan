@@ -59,15 +59,14 @@ def train_xgb_clf(x_train, y_train, x_test, y_test):
     return accuracy_score(y_test, predictions)
 
 
-def train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, *, full=False):
+def train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=None, *, full=False):
     print("Start training...")
 
     params = {
-        "n_estimators": 300,
+        "n_estimators": 30,
         'tree_method': 'hist',
         'max_depth': 3,
-        'learning_rate': 0.1,
-        'min_child_weight': 1,
+        'learning_rate': 0.2,
         'n_jobs': 4
     }
 
@@ -76,8 +75,9 @@ def train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, *, full=False
     model.fit(x_train, y_train)
     print('passed time with XGBClassifier (hist, cpu): %.3fs' % (time.time() - tic))
 
-    pickle.dump(model, open("pima.pickle.dat", "wb"))
-    feature_importances = sorted(zip(x_train.columns.values, model.feature_importances_), key=lambda x: x[1])
+    if path_to_classifier:
+        pickle.dump(model, open(path_to_classifier, "wb"))
+    # feature_importances = sorted(zip(x_train.columns.values, model.feature_importances_), key=lambda x: x[1])
     # print(feature_importances)
 
     if not full:

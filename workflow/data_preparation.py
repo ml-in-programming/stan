@@ -70,23 +70,21 @@ def normalize_data(data):
     return data, result_encoder
 
 
-def split_data(train, test):
+def split_data(data):
     print("Splitting data...")
 
     to_drop = []
-    for feature in train.columns.values:
+    for feature in data.columns.values:
         if feature.startswith("Nominal"):
             to_drop.append(feature)
     to_drop.append('Path')
     to_drop.append(classes)
-    x_train = train.drop(to_drop, axis=1)
-    x_test = test.drop(to_drop, axis=1)
-    y_train = train[classes]
-    y_test = test[classes]
+    x = data.drop(to_drop, axis=1)
+    y = data[classes]
 
     print("Data split")
 
-    return x_train, x_test, y_train, y_test
+    return x, y
 
 
 def save_data(data, filename):
@@ -127,9 +125,7 @@ def shuffle_data(data):
     return data.sample(frac=1)
 
 
-def get_equal_samples(data, test_size, size=None):
-    print("Picking random samples from all classes...")
-
+def drop_rare_features(data):
     to_drop = ['RatioLambda', 'AstTypeAvgDepthexpr.MethodReferenceExpr',
                'AstTypeTFexpr.MethodReferenceExpr', 'AstTypeAvgDepthbody.AnnotationDeclaration',
                'AstTypeTFbody.AnnotationDeclaration', 'AstTypeAvgDepthbody.AnnotationMemberDeclaration',
@@ -147,7 +143,14 @@ def get_equal_samples(data, test_size, size=None):
                'EncodedNominalPunctuationBeforeBraceNewLine', 'EncodedNominalTabsLeadLinesTabs',
                'AstTypeTFbody.EnumDeclaration', 'AstTypeAvgDepthstmt.ContinueStmt', 'AstTypeAvgDepthstmt.SwitchStmt',
                'AstTypeAvgDepthexpr.CharLiteralExpr']
-    data = data.drop(to_drop, axis=1)
+
+    return data.drop(to_drop, axis=1, errors='ignore')
+
+
+def get_equal_samples(data, test_size, size=None):
+    print("Picking random samples from all classes...")
+
+    data = drop_rare_features(data)
 
     class_labels = data[classes].unique()
     if size is not None:
@@ -170,4 +173,6 @@ def get_equal_samples(data, test_size, size=None):
     print("test:", len(test))
     print("Samples are ready")
 
-    return split_data(train, test)
+    x_train, y_train = split_data(train)
+    x_test, y_test = split_data(test)
+    return x_train, x_test, y_train, y_test
