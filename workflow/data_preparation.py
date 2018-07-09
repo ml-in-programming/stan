@@ -70,7 +70,7 @@ def normalize_data(data):
     return data, result_encoder
 
 
-def split_data(data):
+def split_data(data, with_path=False):
     print("Splitting data...")
 
     to_drop = []
@@ -80,7 +80,7 @@ def split_data(data):
     to_drop.append('Path')
     to_drop.append(classes)
     x = data.drop(to_drop, axis=1)
-    y = data[classes]
+    y = data[classes] if not with_path else data[[classes, 'Path']]
 
     print("Data split")
 
@@ -147,7 +147,7 @@ def drop_rare_features(data):
     return data.drop(to_drop, axis=1, errors='ignore')
 
 
-def get_equal_samples(data, test_size, size=None):
+def get_equal_samples(data, test_size, size=None, with_path=False):
     print("Picking random samples from all classes...")
 
     data = drop_rare_features(data)
@@ -173,6 +173,6 @@ def get_equal_samples(data, test_size, size=None):
     print("test:", len(test))
     print("Samples are ready")
 
-    x_train, y_train = split_data(train)
-    x_test, y_test = split_data(test)
+    x_train, y_train = split_data(train, with_path)
+    x_test, y_test = split_data(test, with_path)
     return x_train, x_test, y_train, y_test

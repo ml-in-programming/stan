@@ -1,8 +1,17 @@
 import os
 import argparse
 from workflow.data_preparation import *
-from workflow.models.xgb import *
+from workflow.models.xgb import train_sklearn_xgb_classifier
+from workflow.models.clustering import kmeans_clustering
 from array import array
+
+
+def concatenate_data(path_to_data, data_prefix, start, end):
+    dfs = []
+    for i in range(start, end):
+        dfs.append(load_data(data_prefix + "data{}.csv".format(i)))
+    data = pd.concat(dfs)
+    save_data(data, path_to_data)
 
 
 def normalize(path_to_data, path_to_normalized_data, path_to_encoder):
@@ -12,37 +21,49 @@ def normalize(path_to_data, path_to_normalized_data, path_to_encoder):
     save_encoder(result_encoder, path_to_encoder)
 
 
-def create_dataset(path_to_normalized_data, test_size, size, min_files, max_files):
+def create_dataset(path_to_normalized_data, test_size, size, min_files, max_files, prefix):
     data = load_data(path_to_normalized_data)
     data = drop_edge_classes(data, min_files, max_files)
-    x_train, x_test, y_train, y_test = get_equal_samples(data, test_size=test_size, size=size)
-    print(type(y_train))
-    save_data(x_train, 'data/x_train.csv', index=True)
-    save_data(y_train, 'data/y_train.csv', index=True)
-    save_data(x_test, 'data/x_test.csv', index=True)
-    save_data(y_test, 'data/y_test.csv', index=True)
+    x_train, x_test, y_train, y_test = get_equal_samples(data, test_size=test_size, size=size, with_path=True)
+
+    save_data(x_train, prefix + 'x_train.csv', index=True)
+    save_data(y_train, prefix + 'y_train.csv', index=True)
+    save_data(x_test, prefix + 'x_test.csv', index=True)
+    save_data(y_test, prefix + 'y_test.csv', index=True)
 
 
-def train_and_test(path_to_result, path_to_classifier, path_to_encoder):
+def train_and_test(path_to_result, path_to_classifier, path_to_encoder, prefix):
     name_mapping, reverse_mapping = load_encoder(path_to_encoder)
-    x_train = load_data('data/x_train.csv', index_col=0)
-    y_train = load_data('data/y_train.csv', index_col=0, header=None)
-    x_test = load_data('data/x_test.csv', index_col=0)
-    y_test = load_data('data/y_test.csv', index_col=0, header=None)
-    results = train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=path_to_classifier,
-                                           full=True)
-    if path_to_result:
-        output_file = open(path_to_result, 'wb')
-        float_array = array('d', results)
-        float_array.tofile(output_file)
-        output_file.close()
+    x_train = load_data(prefix + 'x_train.csv', index_col=0)
+    y_train = load_data(prefix + 'y_train.csv', index_col=0)
+    x_test = load_data(prefix + 'x_test.csv', index_col=0)
+    y_test = load_data(prefix + 'y_test.csv', index_col=0)
+    print("4:")
+    results = train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=path_to_classifier, target='Project', nthread=4)
+    # y_test['Correct'] = pd.Series(results, index=y_test.index)
+    # save_data(y_test, prefix + 'y_test.csv', index=True)
+    # if path_to_result:
+    #     output_file = open(path_to_result, 'wb')
+    #     float_array = array('d', results)
+    #     float_array.tofile(output_file)
+    #     output_file.close()
+
+
+def cluster(path_to_encoder, prefix):
+    name_mapping, reverse_mapping = load_encoder(path_to_encoder)
+    x_train = load_data(prefix + 'x_train.csv', index_col=0)
+    y_train = load_data(prefix + 'y_train.csv', index_col=0)
+    x_test = load_data(prefix + 'x_test.csv', index_col=0)
+    y_test = load_data(prefix + 'y_test.csv', index_col=0)
+    results = kmeans_clustering(x_train, y_train, x_test, y_test, reverse_mapping)
 
 
 if __name__ == '__main__':
     root = os.getcwd() + "/"
+    prefix_subsample = root + 'data/subsample/'
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", help="choose between \"normalize\", \"create_dataset\" and \"train\"")
+    parser.add_argument("mode", help="choose between \"normalize\", \"create_dataset\", \"cluster\" and \"train\"")
     parser.add_argument("-s", "--size", help="number of classes used for evaluation in prediction", type=int)
     parser.add_argument("-ts", "--test_size", help="part of classes used for validation in prediction", type=float)
     parser.add_argument("-d", "--data", help="relative path to data in csv format")
@@ -54,7 +75,13 @@ if __name__ == '__main__':
     parser.add_argument("--save_result", help="store result in file", action='store_true')
     args = parser.parse_args()
 
-    if args.mode == "normalize":
+    if args.mode == "concatenate":
+        path_to_data = root + "data/data.csv"
+        if args.data:
+            path_to_data = root + args.data
+        concatenate_data(path_to_data, root + "../rawData/", 0, 241)
+
+    elif args.mode == "normalize":
         path_to_data = root + "data/data.csv"
         path_to_normalized_data = root + "data/normalized_data.csv"
         path_to_encoder = root + "data/result_encoder.txt"
@@ -77,17 +104,18 @@ if __name__ == '__main__':
             test_size = args.test_size
 
         create_dataset(path_to_normalized_data=path_to_normalized_data,
-                test_size=test_size,
-                size=args.size,
-                min_files=args.min_files,
-                max_files=args.max_files)
+                       test_size=test_size,
+                       size=args.size,
+                       min_files=args.min_files,
+                       max_files=args.max_files,
+                       prefix=prefix_subsample)
 
     elif args.mode == "train":
         path_to_encoder = root + "data/result_encoder.txt"
         path_to_result = None
         path_to_model = None
         if args.encoder:
-            path_to_encoder = root + args.encoder
+            palth_to_encoder = root + args.encoder
         if args.save_result:
             path_to_result = root + "data/results_{}.out".format(args.size)
         if args.save_model:
@@ -95,6 +123,12 @@ if __name__ == '__main__':
 
         train_and_test(path_to_result=path_to_result,
                        path_to_classifier=path_to_model,
-                       path_to_encoder=path_to_encoder)
+                       path_to_encoder=path_to_encoder,
+                       prefix=prefix_subsample)
+    elif args.mode == "cluster":
+        path_to_encoder = root + "data/result_encoder.txt"
+        if args.encoder:
+            path_to_encoder = root + args.encoder
+        cluster(path_to_encoder=path_to_encoder, prefix=prefix_subsample)
     else:
         print("invalid mode")

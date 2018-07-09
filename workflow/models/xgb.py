@@ -1,5 +1,5 @@
 from xgboost import XGBClassifier
-from sklearn.metrics import make_scorer, accuracy_score
+from sklearn.metrics import make_scorer, accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -59,53 +59,55 @@ def train_xgb_clf(x_train, y_train, x_test, y_test):
     return accuracy_score(y_test, predictions)
 
 
-def train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=None, *, full=False):
+def train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, target, path_to_classifier=None, nthread=4):
     print("Start training...")
 
     params = {
-        "n_estimators": 30,
+        "n_estimators": 200,
         'tree_method': 'hist',
         'max_depth': 3,
         'learning_rate': 0.2,
-        'n_jobs': 4
+        'n_jobs': nthread
     }
 
     model = XGBClassifier(**params)
     tic = time.time()
-    model.fit(x_train, y_train)
+    model.fit(x_train, y_train[target])
     print('passed time with XGBClassifier (hist, cpu): %.3fs' % (time.time() - tic))
 
     if path_to_classifier:
         pickle.dump(model, open(path_to_classifier, "wb"))
-    # feature_importances = sorted(zip(x_train.columns.values, model.feature_importances_), key=lambda x: x[1])
-    # print(feature_importances)
 
-    if not full:
-        predictions = model.predict(x_test)
-        accuracy = accuracy_score(y_test, predictions)
-        print(accuracy)
-        return accuracy
-    else:
-        classes = model.classes_
-        predictions = model.predict_proba(x_test)
-        n_classes = model.n_classes_
-        positions = np.zeros(n_classes)
-        pos_misses = []
-        for prediction, answer in zip(predictions, y_test):
-            proba = prediction.copy()
-            prediction = np.argsort(prediction)[::-1]
-            for i in range(n_classes):
-                if classes[prediction[i]] == answer:
-                    positions[i] += 1
-                    if i != 0:
-                        pos_misses.append(proba)
-                    break
+    feature_importances = sorted(zip(x_train.columns.values, model.feature_importances_), key=lambda x: x[1])
+    print(list(map(lambda p: p[0], feature_importances[-10:])))
 
-        pos_misses = np.array(pos_misses)
-        for i in range(1, n_classes):
-            positions[i] += positions[i - 1]
-        print(positions)
-        accuracy = positions / float(len(y_test))
-        plt.plot(np.arange(1, n_classes + 1, 1), accuracy, 'b-')
-        plt.show()
-        return accuracy
+    classes = model.classes_
+    predictions = model.predict_proba(x_test)
+    n_classes = model.n_classes_
+    positions = np.zeros(n_classes)
+    pos_misses = []
+    correctness = []
+    for prediction, (index, row) in zip(predictions, y_test.iterrows()):
+        answer = row[target]
+        proba = prediction.copy()
+        prediction = np.argsort(prediction)[::-1]
+        if classes[prediction[0]] != answer:
+            # print("Missed on: {} ({}), decided: {}".format(row['Path'], answer, classes[prediction[0]]))
+            correctness.append(0)
+        else:
+            correctness.append(1)
+        for i in range(n_classes):
+            if classes[prediction[i]] == answer:
+                positions[i] += 1
+                if i != 0:
+                    pos_misses.append(proba)
+                break
+
+    pos_misses = np.array(pos_misses)
+    for i in range(1, n_classes):
+        positions[i] += positions[i - 1]
+    print(positions)
+    accuracy = positions / float(len(y_test))
+    plt.plot(np.arange(1, n_classes + 1, 1), accuracy, 'b-')
+    plt.show()
+    return correctness
