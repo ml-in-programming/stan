@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
+import random
 
 classes = 'Project'
 random_seed = 239
@@ -16,7 +17,7 @@ def load_data(filename, index_col=None, header=0):
     return data
 
 
-def load_encoder(filename):
+def load_encoder(filename, dtype=int):
     print("Loading encoder from {}...".format(filename))
 
     name_mapping = {}
@@ -24,7 +25,7 @@ def load_encoder(filename):
     fin = open(filename, "r")
     for line in fin.readlines():
         string, result = line.split()
-        result = int(result)
+        result = dtype(result)
         name_mapping[string] = result
         reverse_mapping[result] = string
 
@@ -121,6 +122,38 @@ def drop_edge_classes(data, min_threshold, max_threshold=10000000):
     return data
 
 
+def take_fixed_samples(data, sizes):
+    print("Finding classes with fixed sizes...")
+
+    counts = data[classes].value_counts()
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
+    #     print(counts)
+
+    taken_class = [False] * len(counts)
+    n_taken = [0] * len(sizes)
+    leave = []
+    cnt = 0
+    for index, row in data.iterrows():
+        found = False
+        cls = row[classes]
+        if taken_class[cls]:
+            leave.append(True)
+            continue
+
+        for k in range(len(sizes)):
+            if sizes[k][0] > n_taken[k] and sizes[k][1] == counts[cls]:
+                n_taken[k] += 1
+                taken_class[cls] = True
+                cnt += 1
+                found = True
+                break
+        leave.append(found)
+    data = data[leave]
+    print("Found {} classes".format(cnt))
+
+    return data
+
+
 def shuffle_data(data):
     return data.sample(frac=1)
 
@@ -176,3 +209,27 @@ def get_equal_samples(data, test_size, size=None, with_path=False):
     x_train, y_train = split_data(train, with_path)
     x_test, y_test = split_data(test, with_path)
     return x_train, x_test, y_train, y_test
+
+
+def with_buckets(data, num_buckets=10, size=None):
+    print("Adding buckets to all classes...")
+
+    # data = drop_rare_features(data)
+
+    class_labels = data[classes].unique()
+    if size is not None:
+        class_labels = class_labels[:size]
+
+    bucket_num, index = [], []
+    for n, label in enumerate(class_labels):
+        sample = list(data.query('{0} == {1}'.format(classes, label)).index)
+        random.shuffle(sample)
+        for i, id in enumerate(sample):
+            bucket_num.append(i % num_buckets)
+            index.append(id)
+
+    print("Classes: {}".format(len(class_labels)))
+    data['Bucket'] = pd.Series(bucket_num, index=index)
+    print("Buckets are added")
+
+    return data

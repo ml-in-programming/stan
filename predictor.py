@@ -1,7 +1,7 @@
 import os
 import argparse
 from workflow.data_preparation import *
-from workflow.models.xgb import train_sklearn_xgb_classifier
+from workflow.models.xgb import train_sklearn_xgb_classifier, train_xgb_clf, xgb_train_buckets
 from workflow.models.clustering import kmeans_clustering
 from array import array
 
@@ -32,14 +32,23 @@ def create_dataset(path_to_normalized_data, test_size, size, min_files, max_file
     save_data(y_test, prefix + 'y_test.csv', index=True)
 
 
+def add_buckets(path_to_normalized_data, prefix):
+    data = load_data(path_to_normalized_data)
+    data = take_fixed_samples(data, [(11, 31), (5, 32), (1, 210), (1, 212)])
+    data = with_buckets(data, 10)
+    save_data(data, prefix + 'bucketed_data.csv')
+
+
 def train_and_test(path_to_result, path_to_classifier, path_to_encoder, prefix):
     name_mapping, reverse_mapping = load_encoder(path_to_encoder)
     x_train = load_data(prefix + 'x_train.csv', index_col=0)
     y_train = load_data(prefix + 'y_train.csv', index_col=0)
     x_test = load_data(prefix + 'x_test.csv', index_col=0)
     y_test = load_data(prefix + 'y_test.csv', index_col=0)
-    print("4:")
-    results = train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=path_to_classifier, target='Project', nthread=4)
+
+    # results = train_xgb_clf(x_train, y_train, x_test, y_test, target='Project', nthread=4)
+    results = train_sklearn_xgb_classifier(x_train, y_train, x_test, y_test, path_to_classifier=path_to_classifier,
+                                           target='Project', nthread=4)
     # y_test['Correct'] = pd.Series(results, index=y_test.index)
     # save_data(y_test, prefix + 'y_test.csv', index=True)
     # if path_to_result:
@@ -47,6 +56,11 @@ def train_and_test(path_to_result, path_to_classifier, path_to_encoder, prefix):
     #     float_array = array('d', results)
     #     float_array.tofile(output_file)
     #     output_file.close()
+
+
+def train_buckets(prefix):
+    data = load_data(prefix + 'bucketed_data.csv')
+    xgb_train_buckets(data, target='Project', bucket_target='Bucket', n_buckets=10, nthread=4)
 
 
 def cluster(path_to_encoder, prefix):
@@ -61,6 +75,7 @@ def cluster(path_to_encoder, prefix):
 if __name__ == '__main__':
     root = os.getcwd() + "/"
     prefix_subsample = root + 'data/subsample/'
+    prefix_buckets = root + 'data/buckets/'
 
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", help="choose between \"normalize\", \"create_dataset\", \"cluster\" and \"train\"")
@@ -79,7 +94,7 @@ if __name__ == '__main__':
         path_to_data = root + "data/data.csv"
         if args.data:
             path_to_data = root + args.data
-        concatenate_data(path_to_data, root + "../rawData/", 0, 241)
+        concatenate_data(path_to_data, root + "../rawData/", 0, 9)
 
     elif args.mode == "normalize":
         path_to_data = root + "data/data.csv"
@@ -110,6 +125,14 @@ if __name__ == '__main__':
                        max_files=args.max_files,
                        prefix=prefix_subsample)
 
+    elif args.mode == "add_buckets":
+        path_to_normalized_data = root + "data/normalized_data.csv"
+        if args.normalized_data:
+            path_to_normalized_data = root + args.normalized_data
+
+        add_buckets(path_to_normalized_data=path_to_normalized_data,
+                    prefix=prefix_buckets)
+
     elif args.mode == "train":
         path_to_encoder = root + "data/result_encoder.txt"
         path_to_result = None
@@ -121,10 +144,12 @@ if __name__ == '__main__':
         if args.save_model:
             path_to_model = root + args.save_model
 
+        # train_buckets(prefix_buckets)
         train_and_test(path_to_result=path_to_result,
                        path_to_classifier=path_to_model,
                        path_to_encoder=path_to_encoder,
                        prefix=prefix_subsample)
+
     elif args.mode == "cluster":
         path_to_encoder = root + "data/result_encoder.txt"
         if args.encoder:

@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 import argparse
 import shutil
 import pickle
-import csv
+import json
 import numpy as np
 
 from workflow.data_preparation import *
@@ -68,27 +68,32 @@ def make_prediction(model, x, reverse_mapping):
     return class_probs
 
 
-def run_backend():
+def run_backend(link, counts):
     main_root = os.getcwd()
     root = main_root + "/backend/"
     csv_file = root + "data.csv"
-    model_file = root + "full_model_1000.dat"
+    model_file = root + "model_actual.dat"
     original_data_file = main_root + '/data/data_headers.csv'
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("github_link", help="link to clone the project")
-    args = parser.parse_args()
 
-    load_repo(args.github_link, csv_file, root)
+    load_repo(link, csv_file, root)
     x, model = load_model(csv_file, model_file, original_data_file)
-    name_mapping, reverse_mapping = load_encoder(main_root + '/data/full_encoder')
+    name_mapping, reverse_mapping = load_encoder(main_root + '/data/encoder_actual.txt')
+    link_mapping, link_rmapping = load_encoder(main_root + '/data/encoder_links.txt', dtype=str)
 
     probabilities = make_prediction(model, x, reverse_mapping)
 
-    print("\n--------------------\n")
-    for project_name, prob in probabilities[-10:]:
-        print("{} -> {}".format(project_name, prob / probabilities[-1][1]))
-    print("\n--------------------\n")
+    result = {'similarity': [], 'error': ''}
+    # print("\n--------------------\n")
+    for project_name, prob in reversed(probabilities[-min(counts, len(probabilities)):]):
+        # print("{} -> {}".format(project_name, prob / probabilities[-1][1]))
+        result['similarity'].append({
+            'project': project_name,
+            'rating': str(round(prob / probabilities[-1][1], 2)),
+            'gitLink': link_mapping[project_name]
+        })
+    # print("\n--------------------\n")
+    return json.dumps(result)
 
 
 def run_evaluation():
@@ -96,4 +101,7 @@ def run_evaluation():
 
 
 if __name__ == '__main__':
-    run_backend()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("github_link", help="link to clone the project")
+    args = parser.parse_args()
+    run_backend(args.github_link)
