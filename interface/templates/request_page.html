@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>StAn</title>
+    <style>
+        #form {
+            margin: 20px;
+        }
+
+        #result {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+
+        #result td, #result th {
+            border: 1px solid #f2f2f2;
+            padding: 8px;
+        }
+
+        #result th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #ddd;
+        }
+
+        .smallbox {
+            width: 5em;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script type="text/javascript">
+
+        $(function () {
+
+            $('#form').submit(function (e) {
+                e.preventDefault();
+
+                $("#result tr").remove();
+                $('#loadLabel').html("Loading repository...");
+
+                var inputs = $('#form :input');
+                var values = {};
+                inputs.each(function () {
+                    values[this.name] = $(this).val();
+                });
+
+                $.post(
+                    '/test/page',
+                    {
+                        address: values['address'],
+                        count: values['count']
+                    },
+                    function (data, status) {
+                        $('#result').html(
+                            '<tr>' +
+                            '<th>Project</th>' +
+                            '<th>Relative similarity</th>' +
+                            '</tr>'
+                        );
+
+                        for (i in data.similarity) {
+                            var res = data.similarity[i];
+                            $('#result tr:last').after(
+                                '<tr>' +
+                                '<td>' + '<a href="' + res.gitLink + '">' + res.project + '</a>' + '</td>' +
+                                '<td>' + res.rating + '</td>' +
+                                '</tr>'
+                            );
+                        }
+                        console.log("Result: " + data.similarity + "\nStatus: " + status);
+                        $('#loadLabel').html("");
+                    },
+                    "json"
+                );
+            });
+        });
+
+    </script>
+</head>
+<body>
+
+<h3>Enter address of github repository:</h3>
+<form id="form">
+    <input type="text" name="address" size="50" value="{{ address }}" placeholder="GitHub address">
+    <input type="number" name="count" value="10" class="smallbox" placeholder="Best matches" min="1" max="100">
+    <input type="submit" value="Submit"/>
+</form>
+
+<div id="loadLabel"></div>
+
+<table id="result"></table>
+
+</body>
+</html>
