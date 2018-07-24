@@ -3,7 +3,6 @@ import os
 sys.path.append(os.getcwd() + '/backend/')
 
 from django.http import HttpResponse
-from django.template.loader import render_to_string
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from project_predictor import run_backend

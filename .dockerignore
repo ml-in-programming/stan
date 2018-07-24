@@ -1,0 +1,3 @@
+data/*/*
+data/*.csv
+!data/data_headers.csv

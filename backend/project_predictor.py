@@ -11,29 +11,35 @@ import numpy as np
 
 from workflow.data_preparation import *
 from git import Repo
-from eli5 import explain_prediction_xgboost, formatters
+# from eli5 import explain_prediction_xgboost, formatters
+
+
+def print_to_log(s):
+    f = open("log.txt", "a+")
+    f.writelines(s + '\n')
+    f.close()
 
 
 def collect_features(path_to_project, path_to_csv, root):
-    print("Collecting features...")
+    print_to_log("Collecting features...")
     output = os.popen("java -jar {} {} {}".format(root + "run_coan", path_to_project, path_to_csv)).read()
-    print(output)
+    print_to_log(output)
 
 
 def load_repo(link, path_to_csv, root):
     project_name = link.rsplit('/', 1)[-1].rsplit('.', 1)[0]
     path_to_project = root + project_name
 
-    print("Cloning repository {}...".format(project_name))
+    print_to_log("Cloning repository {}...".format(project_name))
     Repo.clone_from(link, path_to_project)
-    print("Cloned.")
+    print_to_log("Cloned.")
 
     collect_features(path_to_project, path_to_csv, root)
 
     try:
         shutil.rmtree(path_to_project)
     except OSError as e:
-        print("Error: %s - %s." % (e.filename, e.strerror))
+        print_to_log("Error: %s - %s." % (e.filename, e.strerror))
 
 
 def load_model(path_to_csv, path_to_model, path_to_original_data):
@@ -44,7 +50,7 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
     data, result_encoder = normalize_data(data)
     existing_features = data.columns.values
 
-    print("Adding missing features...")
+    print_to_log("Adding missing features...")
     original_data = load_data(path_to_original_data)
     original_data, original_encoder = normalize_data(original_data)
     fieldnames = original_data.columns.values
@@ -52,7 +58,7 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
         if feature not in existing_features:
             data[feature] = 0
     data = data[fieldnames]
-    print("Added.")
+    print_to_log("Added.")
     data = drop_rare_features(data)
     x, y = split_data(data)
     loaded_model = pickle.load(open(path_to_model, "rb"))
@@ -60,7 +66,7 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
 
 
 def make_prediction(model, x, reverse_mapping, counts):
-    # print(formatters.format_as_text(explain_prediction_xgboost(model.get_booster(), x.iloc[0], top_targets=counts)))
+    # print_to_log(formatters.format_as_text(explain_prediction_xgboost(model.get_booster(), x.iloc[0], top_targets=counts)))
     probs = np.array(model.predict_proba(x))
     resulting_probability = sum(probs) / len(x)
 
@@ -89,15 +95,15 @@ def run_backend(link, counts):
     probabilities = make_prediction(model, x, reverse_mapping, counts)
 
     result = {'similarity': [], 'error': ''}
-    # print("\n--------------------\n")
+    print_to_log("\n--------------------\n")
     for project_name, prob in reversed(probabilities[-min(counts, len(probabilities)):]):
-        # print("{} -> {}".format(project_name, prob / probabilities[-1][1]))
+        print_to_log("{} -> {}".format(project_name, prob / probabilities[-1][1]))
         result['similarity'].append({
             'project': project_name,
             'rating': str(round(prob / probabilities[-1][1], 2)),
             'gitLink': link_mapping[project_name]
         })
-    # print("\n--------------------\n")
+    print_to_log("\n--------------------\n")
     return json.dumps(result)
 
 
