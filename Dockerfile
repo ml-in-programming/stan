@@ -17,6 +17,12 @@ RUN apt-get update \
 
 RUN apt-get --assume-yes install git
 
+RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
+    apt-get --assume-yes install curl && \
+    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get update && apt-get --assume-yes install google-cloud-sdk
+
 WORKDIR /app
 RUN mkdir /app/backend && \
     mkdir /app/data && \
@@ -24,7 +30,7 @@ RUN mkdir /app/backend && \
     mkdir /app/workflow
 
 COPY backend/project_predictor.py /app/backend/
-COPY backend/model_actual.dat /app/backend/
+RUN gsutil cp gs://codestyle-similarity/models/model_actual.dat /app/backend/model_actual.dat
 COPY backend/run_coan /app/backend/
 COPY backend/project_predictor.py /app/backend/
 COPY data/encoder_actual.txt /app/data
