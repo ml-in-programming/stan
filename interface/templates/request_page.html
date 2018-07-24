@@ -5,7 +5,7 @@
     <title>StAn</title>
     <style>
         #form {
-            margin: 20px;
+            margin: 0 0 20px 0;
         }
 
         #result {
@@ -28,6 +28,7 @@
         .smallbox {
             width: 5em;
         }
+
     </style>
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <script type="text/javascript">
@@ -37,40 +38,48 @@
             $('#form').submit(function (e) {
                 e.preventDefault();
 
-                $("#result tr").remove();
-                $('#loadLabel').html("Loading repository...");
-
                 var inputs = $('#form :input');
                 var values = {};
                 inputs.each(function () {
                     values[this.name] = $(this).val();
                 });
 
+                if (values['address'] === '') {
+                    return
+                }
+
+                $("#result tr").remove();
+                $('#loadLabel').html("Loading repository...");
+
                 $.post(
-                    '/test/page',
+                    '/request/',
                     {
                         address: values['address'],
                         count: values['count']
                     },
                     function (data, status) {
-                        $('#result').html(
-                            '<tr>' +
-                            '<th>Project</th>' +
-                            '<th>Relative similarity</th>' +
-                            '</tr>'
-                        );
-
-                        for (i in data.similarity) {
-                            var res = data.similarity[i];
-                            $('#result tr:last').after(
+                        if (data.error === '') {
+                            $('#result').html(
                                 '<tr>' +
-                                '<td>' + '<a href="' + res.gitLink + '">' + res.project + '</a>' + '</td>' +
-                                '<td>' + res.rating + '</td>' +
+                                '<th>Project</th>' +
+                                '<th>Relative similarity</th>' +
                                 '</tr>'
                             );
+
+                            for (i in data.similarity) {
+                                var res = data.similarity[i];
+                                $('#result tr:last').after(
+                                    '<tr>' +
+                                    '<td>' + '<a href="' + res.gitLink + '">' + res.project + '</a>' + '</td>' +
+                                    '<td>' + res.rating + '</td>' +
+                                    '</tr>'
+                                );
+                            }
+                            console.log("Result: " + data.similarity + "\nStatus: " + status);
+                            $('#loadLabel').html("");
+                        } else {
+                            $('#loadLabel').html(data.error);
                         }
-                        console.log("Result: " + data.similarity + "\nStatus: " + status);
-                        $('#loadLabel').html("");
                     },
                     "json"
                 );
@@ -81,16 +90,16 @@
 </head>
 <body>
 
-<h3>Enter address of github repository:</h3>
-<form id="form">
-    <input type="text" name="address" size="50" value="{{ address }}" placeholder="GitHub address">
-    <input type="number" name="count" value="10" class="smallbox" placeholder="Best matches" min="1" max="100">
-    <input type="submit" value="Submit"/>
-</form>
+    <h3>Enter address of github repository:</h3>
+    <form id="form">
+        <input type="text" name="address" size="50" value="{{ address }}" placeholder="GitHub address">
+        <input type="number" name="count" value="10" class="smallbox" placeholder="Best matches" min="1" max="100">
+        <input type="submit" value="Submit"/>
+    </form>
 
-<div id="loadLabel"></div>
+    <div id="loadLabel"></div>
 
-<table id="result"></table>
+    <table id="result"></table>
 
 </body>
 </html>

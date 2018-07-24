@@ -11,19 +11,6 @@ from project_predictor import run_backend
 import git
 import json
 
-# from .forms import NameForm
-
-
-def home(request):
-    return HttpResponse('Welcome to the Tinyapp\'s Homepage!', content_type='text/plain')
-
-
-def about(request):
-    title = 'Tinyapp'
-    author = 'Egor'
-    html = render_to_string('request_page.html', {'title': title, 'author': author})
-    return HttpResponse(html)
-
 
 @csrf_exempt
 def get_name(request):
@@ -47,5 +34,11 @@ def load_content(request):
                 result = run_backend(address, int(counts))
             except git.GitCommandError:
                 result = json.dumps({'error': 'Invalid repository address'})
+            except ValueError as err:
+                result = json.dumps({'error': str(err)})
 
     return HttpResponse(result)
+
+
+def check_health(request):
+    return HttpResponse(status=200)

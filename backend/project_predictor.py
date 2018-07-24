@@ -11,6 +11,7 @@ import numpy as np
 
 from workflow.data_preparation import *
 from git import Repo
+from eli5 import explain_prediction_xgboost, formatters
 
 
 def collect_features(path_to_project, path_to_csv, root):
@@ -37,6 +38,9 @@ def load_repo(link, path_to_csv, root):
 
 def load_model(path_to_csv, path_to_model, path_to_original_data):
     data = load_data(path_to_csv)
+    if len(data) == 0:
+        raise ValueError("No java files found in repository")
+
     data, result_encoder = normalize_data(data)
     existing_features = data.columns.values
 
@@ -55,7 +59,8 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
     return x, loaded_model
 
 
-def make_prediction(model, x, reverse_mapping):
+def make_prediction(model, x, reverse_mapping, counts):
+    # print(formatters.format_as_text(explain_prediction_xgboost(model.get_booster(), x.iloc[0], top_targets=counts)))
     probs = np.array(model.predict_proba(x))
     resulting_probability = sum(probs) / len(x)
 
@@ -75,13 +80,13 @@ def run_backend(link, counts):
     model_file = root + "model_actual.dat"
     original_data_file = main_root + '/data/data_headers.csv'
 
-
     load_repo(link, csv_file, root)
     x, model = load_model(csv_file, model_file, original_data_file)
+
     name_mapping, reverse_mapping = load_encoder(main_root + '/data/encoder_actual.txt')
     link_mapping, link_rmapping = load_encoder(main_root + '/data/encoder_links.txt', dtype=str)
 
-    probabilities = make_prediction(model, x, reverse_mapping)
+    probabilities = make_prediction(model, x, reverse_mapping, counts)
 
     result = {'similarity': [], 'error': ''}
     # print("\n--------------------\n")
@@ -104,4 +109,4 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("github_link", help="link to clone the project")
     args = parser.parse_args()
-    run_backend(args.github_link)
+    run_backend(args.github_link, 10)
