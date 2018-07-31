@@ -60,9 +60,13 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
             data[feature] = 0
     data = data[fieldnames]
     print_to_log("Added.")
+    print_to_log("Dropping rare features...")
     data = drop_rare_features(data)
+    print_to_log("Dropped.")
     x, y = split_data(data)
+    print_to_log("Loading model...")
     loaded_model = pickle.load(open(path_to_model, "rb"))
+    print_to_log("Model loaded.")
     return x, loaded_model
 
 
@@ -90,10 +94,14 @@ def run_backend(link, counts):
     load_repo(link, csv_file, root)
     x, model = load_model(csv_file, model_file, original_data_file)
 
+    print_to_log("Loading encoders...")
     name_mapping, reverse_mapping = load_encoder(main_root + '/data/encoder_actual.txt')
     link_mapping, link_rmapping = load_encoder(main_root + '/data/encoder_links.txt', dtype=str)
+    print_to_log("Loaded.")
 
+    print_to_log("Making predictions...")
     probabilities = make_prediction(model, x, reverse_mapping, counts)
+    print_to_log("Done.")
 
     result = {'similarity': [], 'error': ''}
     print_to_log("\n--------------------\n")
