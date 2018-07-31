@@ -6,7 +6,7 @@ resource "aws_ecs_task_definition" "default" {
 [
     {
       "volumesFrom": [],
-      "memory": 950,
+      "memory": 7900,
       "extraHosts": null,
       "dnsServers": null,
       "disableNetworking": null,
@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "default" {
             "awslogs-stream-prefix": "${var.resource_prefix}-${var.internal_prefix}-stream"
         }
       },
-      "cpu": 1024,
+      "cpu": 2048,
       "privileged": null,
       "memoryReservation": null
     }

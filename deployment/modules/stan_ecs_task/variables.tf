@@ -1,6 +1,6 @@
 variable "resource_prefix" {}
 variable "internal_prefix" {
-  default = "elk"
+  default = "stan"
 }
 
 variable "zone_id" {}

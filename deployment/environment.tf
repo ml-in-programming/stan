@@ -10,8 +10,9 @@ module "vpc_stan" {
 
 module "ecs_cluster" {
   source = "modules/ecs_cluster"
-  aws_ecs_ec2_instance_type = "t2.micro"
+  aws_ecs_ec2_instance_type = "m4.large"
   aws_subnet_private_id = "${module.vpc_stan.aws_subnet_private_id}"
+  aws_subnet_public_id = "${module.vpc_stan.aws_subnet_public_id}"
   resource_prefix = "stan"
   ec2_instance_security_group_ids = ["${module.internal_security_group.internal_security_group_id}"]
   ec2_public_key_path = "stan_ec2.pub"
