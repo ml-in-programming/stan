@@ -9,6 +9,7 @@ resource "aws_launch_configuration" "default" {
   instance_type = "${var.aws_ecs_ec2_instance_type}"
   security_groups = [
     "${var.ec2_instance_security_group_ids}"]
+  associate_public_ip_address = true
   iam_instance_profile = "${aws_iam_instance_profile.instance_profile.arn}"
   key_name = "${aws_key_pair.auth.key_name}"
 

@@ -1,3 +1,7 @@
+data "aws_route53_zone" "ml_zone" {
+  name = "ml.aws.intellij.net."
+}
+
 module "vpc_stan" {
   source = "modules/vpc"
   az_count = 2
@@ -19,11 +23,13 @@ module "ecs_cluster" {
 module "stan_task" {
   source = "modules/stan_ecs_task"
   ecs_cluster_id = "${module.ecs_cluster.ecs_cluster_id}"
-  alb_security_group = ["${module.outer_security_groups.outer_security_group_id_80}"]
+  alb_security_group = ["${module.outer_security_groups.outer_security_group_id_80}", "${module.outer_security_groups.outer_security_group_id_443}"]
   resource_prefix = "stan"
   vpc_id = "${module.vpc_stan.vpc_id}"
   public_subnet_id = "${module.vpc_stan.aws_subnet_public_id}"
   aws_region = "${local.region}"
+  dns_name = "stan.ml.aws.intellij.net"
+  zone_id = "${data.aws_route53_zone.ml_zone.zone_id}"
 }
 
 module "jb_security_groups" {
