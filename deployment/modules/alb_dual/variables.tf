@@ -13,3 +13,4 @@ variable "alb_security_groups" {
 
 variable "target_group_arn" {}
 
+variable "certificate_name" {}

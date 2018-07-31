@@ -3,6 +3,9 @@ variable "internal_prefix" {
   default = "elk"
 }
 
+variable "zone_id" {}
+variable "dns_name" {}
+
 variable "alb_security_group" {
   type = "list"
 }
