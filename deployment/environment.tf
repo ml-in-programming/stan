@@ -17,7 +17,7 @@ module "ecs_cluster" {
   ec2_instance_security_group_ids = ["${module.internal_security_group.internal_security_group_id}"]
   ec2_public_key_path = "stan_ec2.pub"
   aws_availability_zones_names = "${module.vpc_stan.aws_availability_zones_names}"
-  aws_asg_min_size = "1"
+  aws_asg_min_size = "0"
   aws_asg_max_size = "1"
 }
 
