@@ -15,9 +15,10 @@ from git import Repo
 
 
 def print_to_log(s):
-    f = open("log.txt", "a+")
-    f.writelines(s + '\n')
-    f.close()
+    # f = open("log.txt", "a+")
+    # f.writelines(s + '\n')
+    # f.close()
+    print(s)
 
 
 def collect_features(path_to_project, path_to_csv, root):
@@ -30,7 +31,7 @@ def load_repo(link, path_to_csv, root):
     project_name = link.rsplit('/', 1)[-1].rsplit('.', 1)[0]
     path_to_project = root + project_name
 
-    print_to_log("Cloning repository {}...".format(project_name))
+    print_to_log("Cloning repository {} from {}...".format(project_name, link))
     Repo.clone_from(link, path_to_project)
     print_to_log("Cloned.")
 
