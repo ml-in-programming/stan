@@ -5,7 +5,7 @@ data "aws_ecs_task_definition" "default" {
 }
 
 resource "aws_ecs_service" "default" {
-  name = "${var.resource_prefix}-${var.internal_prefix}-proxy-service"
+  name = "${var.resource_prefix}-${var.internal_prefix}-service"
   cluster = "${var.ecs_cluster_id}"
   desired_count = "1"
   iam_role = "${aws_iam_role.ecs_service_role.arn}"

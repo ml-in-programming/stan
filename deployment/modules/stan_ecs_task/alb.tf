@@ -3,12 +3,12 @@ resource "aws_route53_record" "alias_record" {
   type = "CNAME"
   zone_id = "${var.zone_id}"
   ttl = 60
-  records = ["${module.nginx-es-proxy-nlb.alb_dns_name}"]
+  records = ["${module.service_alb.alb_dns_name}"]
 }
 
-module "nginx-es-proxy-nlb" {
+module "service_alb" {
   source = "../alb_dual"
-  alb_name = "${var.resource_prefix}-${var.internal_prefix}-proxy-alb"
+  alb_name = "${var.resource_prefix}-${var.internal_prefix}-alb"
 
   aws_subnet_public_id = "${var.public_subnet_id}"
   alb_security_groups = "${var.alb_security_group}"

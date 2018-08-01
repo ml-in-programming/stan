@@ -23,6 +23,10 @@ variable "aws_subnet_private_id" {
   type = "list"
 }
 
+variable "aws_subnet_public_id" {
+  type = "list"
+}
+
 variable "ec2_instance_security_group_ids" {
   type = "list"
 }
