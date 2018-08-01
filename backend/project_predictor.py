@@ -14,6 +14,19 @@ from git import Repo
 # from eli5 import explain_prediction_xgboost, formatters
 
 
+main_root = os.getcwd()
+root = main_root + "/backend/"
+csv_file = root + "data.csv"
+model_file = root + "model_actual.dat"
+original_data_file = main_root + '/data/data_headers.csv'
+
+with open(model_file, "rb") as f:
+    model = pickle.load(f)
+    model.get_booster().set_param('nthread', 1)
+
+name_mapping, reverse_mapping = load_encoder(main_root + '/data/encoder_actual.txt')
+link_mapping, link_rmapping = load_encoder(main_root + '/data/encoder_links.txt', dtype=str)
+
 def print_to_log(s):
     # f = open("log.txt", "a+")
     # f.writelines(s + '\n')
@@ -43,7 +56,7 @@ def load_repo(link, path_to_csv, root):
         print_to_log("Error: %s - %s." % (e.filename, e.strerror))
 
 
-def load_model(path_to_csv, path_to_model, path_to_original_data):
+def load_model_data(path_to_csv, path_to_original_data):
     data = load_data(path_to_csv)
     if len(data) == 0:
         raise ValueError("No java files found in repository")
@@ -64,10 +77,7 @@ def load_model(path_to_csv, path_to_model, path_to_original_data):
     data = drop_rare_features(data)
     print_to_log("Dropped.")
     x, y = split_data(data)
-    print_to_log("Loading model...")
-    loaded_model = pickle.load(open(path_to_model, "rb"))
-    print_to_log("Model loaded.")
-    return x, loaded_model
+    return x
 
 
 def make_prediction(model, x, reverse_mapping, counts):
@@ -85,19 +95,9 @@ def make_prediction(model, x, reverse_mapping, counts):
 
 
 def run_backend(link, counts):
-    main_root = os.getcwd()
-    root = main_root + "/backend/"
-    csv_file = root + "data.csv"
-    model_file = root + "model_actual.dat"
-    original_data_file = main_root + '/data/data_headers.csv'
 
     load_repo(link, csv_file, root)
-    x, model = load_model(csv_file, model_file, original_data_file)
-
-    print_to_log("Loading encoders...")
-    name_mapping, reverse_mapping = load_encoder(main_root + '/data/encoder_actual.txt')
-    link_mapping, link_rmapping = load_encoder(main_root + '/data/encoder_links.txt', dtype=str)
-    print_to_log("Loaded.")
+    x = load_model_data(csv_file, original_data_file)
 
     print_to_log("Making predictions...")
     probabilities = make_prediction(model, x, reverse_mapping, counts)
