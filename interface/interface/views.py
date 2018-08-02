@@ -5,9 +5,8 @@ sys.path.append(os.getcwd() + '/backend/')
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from project_predictor import run_backend
+from project_predictor import run_backend, get_status
 
-import git
 import json
 
 
@@ -31,12 +30,19 @@ def load_content(request):
         if address != '':
             try:
                 result = run_backend(address, int(counts))
-            except git.GitCommandError:
-                result = json.dumps({'error': 'Invalid repository address'})
             except ValueError as err:
                 result = json.dumps({'error': str(err)})
 
     return HttpResponse(result)
+
+
+def request_status(request):
+    status = 'Invalid request'
+    if request.method == 'POST':
+        address = request.POST.get('address')
+        if address != '':
+            status = get_status(address)
+    return HttpResponse(json.dumps({'status': status}))
 
 
 def check_health(request):
