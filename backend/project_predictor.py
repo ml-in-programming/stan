@@ -56,8 +56,8 @@ def print_to_log(s):
     # f = open("log.txt", "a+")
     # f.writelines(s + '\n')
     # f.close()
-    # sys.stderr.write(s + '\n')
-    pass
+    sys.stderr.write(s + '\n')
+    # pass
 
 
 def collect_features(path_to_project, path_to_csv, root, link):
