@@ -31,7 +31,7 @@ def load_content(request):
             try:
                 result = run_backend(address, int(counts))
             except ValueError as err:
-                result = json.dumps({'error': str(err)})
+                result = json.dumps({'status': 'Failed', 'error': str(err)})
 
     return HttpResponse(result)
 
