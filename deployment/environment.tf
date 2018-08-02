@@ -10,7 +10,7 @@ module "vpc_stan" {
 
 module "ecs_cluster" {
   source = "modules/ecs_cluster"
-  aws_ecs_ec2_instance_type = "m4.large"
+  aws_ecs_ec2_instance_type = "t2.small"
   aws_subnet_private_id = "${module.vpc_stan.aws_subnet_private_id}"
   aws_subnet_public_id = "${module.vpc_stan.aws_subnet_public_id}"
   resource_prefix = "stan"

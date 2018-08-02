@@ -1,6 +1,7 @@
 provider "aws" {
   region = "eu-west-1"
   profile = "ml-labs-jetbrains"
+  version = "1.30.0"
 }
 
 terraform {
