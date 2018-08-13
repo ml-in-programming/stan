@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <title>StAn</title>
@@ -27,6 +27,16 @@
 
         .smallbox {
             width: 5em;
+        }
+
+        .leftcolumn {
+            float: left;
+            width: 50%;
+        }
+
+        .rightcolumn {
+            float: left;
+            width: 30%;
         }
 
     </style>
@@ -125,6 +135,7 @@
 </head>
 <body>
 
+<div class="leftcolumn">
 <h3>Enter address of github repository:</h3>
 <form id="form">
     <input type="text" name="address" size="50" value="{{ address }}" placeholder="GitHub address">
@@ -135,6 +146,32 @@
 <div id="loadLabel"></div>
 
 <table id="result"></table>
+</div>
+
+<div class="rightcolumn">
+    <h3>Description:</h3>
+    <p>
+        Stan is a tool for detection of programmers with similar coding style based on
+        <a href="https://github.com/dmlc/xgboost">XGBoost</a> model trained for authorship classification.
+        For now it only supports Java.
+    </p>
+    <h4>How it works:</h4>
+    <p>
+        <ol>
+            <li>You give it a link to github repository that contains .java files.</li>
+            <li>Features are computed from them</li>
+            <li>XGBoost model finds the most similar repository among 3000 known to it.</li>
+        </ol>
+    </p>
+    <h4>Links:</h4>
+    <p>
+        Stan itself can be found  <a href="https://github.com/ml-in-programming/stan">here</a>
+    </p>
+    <p>
+        Tool for extraction of features can be found <a href="https://github.com/ml-in-programming/coan">here</a>.
+    </p>
+</div>
+
 
 </body>
 </html>
